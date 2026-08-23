@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Make a Green Choice — Katathani Green Concept</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Work+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Work+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@500&display=swap" rel="stylesheet">
 <style>
   :root{
     --maroon:     #6B2E22;
@@ -72,10 +72,11 @@
     margin: 2px 0 10px;
   }
   .hero h1{
-    font-family:'Fraunces', serif;
-    font-weight: 600;
-    font-size: clamp(26px, 6vw, 33px);
-    line-height: 1.15;
+    font-family:'Cormorant Garamond', serif;
+    font-weight: 700;
+    font-size: clamp(30px, 7.5vw, 40px);
+    line-height: 1.12;
+    letter-spacing: 0.005em;
     margin: 0;
     color: var(--maroon);
   }
@@ -121,7 +122,7 @@
   }
   .field input{
     font-family:'Work Sans', sans-serif;
-    font-size: 15px;
+    font-size: 16px;
     padding: 12px 13px;
     border: 1.5px solid var(--line);
     border-radius: 8px;
@@ -197,9 +198,9 @@
     height: 32px;
   }
   .choice-title{
-    font-family:'Fraunces', serif;
-    font-weight: 600;
-    font-size: 16px;
+    font-family:'Cormorant Garamond', serif;
+    font-weight: 700;
+    font-size: 19px;
     line-height: 1.25;
     color: var(--maroon);
   }
@@ -237,10 +238,11 @@
     color: rgba(42,36,31,0.8);
   }
   .agree input{
-    margin-top: 3px;
+    margin-top: 2px;
     flex-shrink:0;
-    width:16px; height:16px;
+    width:19px; height:19px;
     accent-color: var(--leaf);
+    cursor: pointer;
   }
 
   /* ---------- Submit ---------- */
@@ -301,9 +303,9 @@
     margin: 0 auto 22px;
   }
   .confirm h2{
-    font-family:'Fraunces', serif;
-    font-weight: 600;
-    font-size: 23px;
+    font-family:'Cormorant Garamond', serif;
+    font-weight: 700;
+    font-size: 27px;
     margin: 0 0 10px;
     color: var(--maroon);
   }
@@ -335,6 +337,25 @@
 
   .form-wrap{ display:block; }
   .form-wrap.hidden{ display:none; }
+
+  /* ---------- Mobile adjustments ---------- */
+  @media (max-width: 480px){
+    .page{ padding: 0 16px 48px; }
+    .hero{ padding: 26px 20px 0; margin: 0 -16px 0; }
+    .hero-top{ gap: 14px; }
+    .logo-badge{ width: 54px; height: 65px; }
+    .hero p{ margin: 14px 0 22px; }
+    .field-row{
+      flex-direction: column;
+      gap: 16px;
+    }
+    .choice{ padding: 18px 14px 16px; }
+    .terms{ padding: 14px 15px; }
+  }
+  @media (max-width: 360px){
+    .logo-badge{ width: 46px; height: 56px; }
+    .hero-eyebrow{ font-size: 9.5px; }
+  }
 </style>
 </head>
 <body>
@@ -372,7 +393,7 @@
       <div class="field">
         <label for="stayDate">Date of participation</label>
         <input type="date" id="stayDate">
-        <span class="field-hint">Please submit at least 1 day in advance so housekeeping can be notified ahead of time.</span>
+        <span class="field-hint">Submit as early in the day as possible or a day in advance so housekeeping can be notified before your room is serviced.</span>
       </div>
     </div>
 
@@ -403,7 +424,7 @@
     </div>
 
     <div class="terms">
-      <strong>Please note:</strong> Submit this form at least 1 day before your chosen date so our housekeeping team can be alerted in advance. Once submitted, your request is sent directly to our reception team. If eligible, reception will prepare your food &amp; beverage voucher or record your donation. Vouchers can be used only during your stay and expire automatically on the day of departure. Vouchers can be used one at a time only, may not be transferred to another room and/or person, and are not eligible for a cash pay-out.
+      <strong>Please note:</strong> Submit this form as early as possible on your chosen date so our housekeeping team can be alerted before your room is serviced. Once submitted, your request is sent directly to our reception team. If eligible, reception will prepare your food &amp; beverage voucher or record your donation. Vouchers can be used only during your stay and expire automatically on the day of departure. Vouchers can be used one at a time only, may not be transferred to another room and/or person, and are not eligible for a cash pay-out.
     </div>
 
     <label class="agree">
@@ -414,7 +435,7 @@
     <p class="error-msg" id="errorMsg">Please fill in your name and room number, choose an option, and confirm the terms.</p>
 
     <button class="submit-btn" id="submitBtn">Submit my green choice</button>
-    <p class="footnote">Housekeeping will not change your linen and towels on the date selected above, provided this form is submitted at least 1 day ahead.</p>
+    <p class="footnote">Housekeeping will not change your linen and towels on the date selected above, once this form has been submitted.</p>
   </div>
 
   <div class="confirm" id="confirmWrap">
@@ -439,11 +460,9 @@
   const stayDate = document.getElementById('stayDate');
 
   const today = new Date();
-  const tomorrow = new Date(today);
-  tomorrow.setDate(today.getDate() + 1);
-  const tomorrowStr = tomorrow.toISOString().slice(0,10);
-  stayDate.value = tomorrowStr;
-  stayDate.min = tomorrowStr;
+  const todayStr = today.toISOString().slice(0,10);
+  stayDate.value = todayStr;
+  stayDate.min = todayStr;
 
   const choiceCredit = document.getElementById('choiceCredit');
   const choiceDonate = document.getElementById('choiceDonate');
@@ -489,8 +508,8 @@
       errorMsg.classList.add('show');
       return;
     }
-    if(stayDate.value < tomorrowStr){
-      errorMsg.textContent = 'Please choose a date at least 1 day from today so housekeeping can be notified in advance.';
+    if(stayDate.value < todayStr){
+      errorMsg.textContent = 'Please choose today or a future date.';
       errorMsg.classList.add('show');
       return;
     }
@@ -540,7 +559,7 @@
     choiceCards.forEach(c => c.classList.remove('selected'));
     const checked = document.querySelector('input[name="choice"]:checked');
     if(checked) checked.checked = false;
-    stayDate.value = tomorrowStr;
+    stayDate.value = todayStr;
     confirmWrap.classList.remove('show');
     formWrap.classList.remove('hidden');
   });
