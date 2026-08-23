@@ -373,7 +373,7 @@
     <div class="field-row">
       <div class="field">
         <label for="guestName">Your name</label>
-        <input type="text" id="guestName" placeholder="As on your booking" autocomplete="name">
+        <input type="text" id="guestName" placeholder="As shown on your booking" autocomplete="name">
       </div>
     </div>
     <div class="field-row">
@@ -382,9 +382,9 @@
         <input type="text" id="roomNumber" inputmode="numeric">
       </div>
       <div class="field">
-        <label for="stayDate">Date of participation</label>
+        <label for="stayDate">Participation start date (2 days)</label>
         <input type="date" id="stayDate">
-        <span class="field-hint">Submit as early in the day as possible or a day in advance so housekeeping can be notified before your room is serviced.</span>
+        <span class="field-hint" id="rangeHint">No housekeeping service will be provided for your room on these two days.</span>
       </div>
     </div>
 
@@ -397,7 +397,7 @@
           <path d="M13 14l3 3 5-6" stroke="#E8901E" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
         </svg>
         <span class="choice-title">Donate</span>
-        <span class="choice-desc">Give THB 200 to We Love Hometown Foundation, supporting our local community.</span>
+        <span class="choice-desc">Donate THB 200 to the We Love Hometown Foundation, supporting our local community.</span>
         <span class="choice-value">฿200 · We Love Hometown</span>
       </label>
 
@@ -409,24 +409,24 @@
           <circle cx="10" cy="20" r="2" fill="#E8901E"/>
         </svg>
         <span class="choice-title">Credit</span>
-        <span class="choice-desc">Apply THB 200 for food at the restaurant during your stay.</span>
+        <span class="choice-desc">Enjoy THB 200 in Food &amp; Beverage credit during your stay.</span>
         <span class="choice-value">฿200 · F&amp;B credit</span>
       </label>
     </div>
 
     <div class="terms">
-      <strong>Please note:</strong> Submit this form as early as possible on your chosen date so our housekeeping team can be alerted before your room is serviced. Once submitted, your request is sent directly to our reception team. If eligible, reception will prepare your food &amp; beverage voucher or record your donation. Vouchers can be used only during your stay and expire automatically on the day of departure. Vouchers can be used one at a time only, may not be transferred to another room and/or person, and are not eligible for a cash pay-out.
+      <strong>Please note:</strong> Submit this form as early as possible on your start date so our housekeeping team can be notified before your room is serviced. Once submitted, your request will be sent directly to our Reception team. If eligible, Reception will prepare your Food &amp; Beverage voucher or record your donation. Vouchers can be used only during your stay and will expire automatically on your departure day. Vouchers can be used one at a time only, may not be transferred to another room and/or person, and are not eligible for cash redemption.
     </div>
 
     <label class="agree">
       <input type="checkbox" id="agreeBox">
-      <span>I confirm the details above are correct and I agree to the terms of the Green Concept program. Typing my name above serves as my digital signature.</span>
+      <span>I confirm that the details above are correct and agree to the terms of the Green Concept program. By typing my name above, I acknowledge that it serves as my digital signature.</span>
     </label>
 
     <p class="error-msg" id="errorMsg">Please fill in your name and room number, choose an option, and confirm the terms.</p>
 
     <button class="submit-btn" id="submitBtn">Submit my green choice</button>
-    <p class="footnote">Housekeeping will not change your linen and towels on the date selected above, once this form has been submitted.</p>
+    <p class="footnote">Housekeeping will not change your linen and towels for both days of your selected range, once this form has been submitted.</p>
   </div>
 
   <div class="confirm" id="confirmWrap">
@@ -449,11 +449,35 @@
   const submitBtn = document.getElementById('submitBtn');
   const errorMsg = document.getElementById('errorMsg');
   const stayDate = document.getElementById('stayDate');
+  const rangeHint = document.getElementById('rangeHint');
+
+  function toDateStr(d){ return d.toISOString().slice(0,10); }
+  function addDays(d, n){ const copy = new Date(d); copy.setDate(copy.getDate() + n); return copy; }
+  function formatNice(d){
+    return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+  }
 
   const today = new Date();
-  const todayStr = today.toISOString().slice(0,10);
+  const todayStr = toDateStr(today);
+  // Guests may only pick a start date within a 4-day window: today, tomorrow, +2, or +3 days.
+  const maxStart = addDays(today, 3);
+  const maxStartStr = toDateStr(maxStart);
+
   stayDate.value = todayStr;
   stayDate.min = todayStr;
+  stayDate.max = maxStartStr;
+
+  function updateRangeHint(){
+    if(!stayDate.value){
+      rangeHint.innerHTML = 'No housekeeping service will be provided for your room on these two days.';
+      return;
+    }
+    const start = new Date(stayDate.value + 'T00:00:00');
+    const end = addDays(start, 1);
+    rangeHint.innerHTML = `Your Green Choice covers ${formatNice(start)} \u2013 ${formatNice(end)}.<br>No housekeeping service will be provided for your room on these two days.`;
+  }
+  stayDate.addEventListener('change', updateRangeHint);
+  updateRangeHint();
 
   const choiceCredit = document.getElementById('choiceCredit');
   const choiceDonate = document.getElementById('choiceDonate');
@@ -478,7 +502,8 @@
       body: JSON.stringify({
         guest_name: entry.name,
         room_number: entry.room,
-        participation_date: entry.date,
+        participation_start_date: entry.startDate,
+        participation_end_date: entry.endDate,
         choice: entry.choice
       })
     });
@@ -499,8 +524,8 @@
       errorMsg.classList.add('show');
       return;
     }
-    if(stayDate.value < todayStr){
-      errorMsg.textContent = 'Please choose today or a future date.';
+    if(stayDate.value < todayStr || stayDate.value > maxStartStr){
+      errorMsg.textContent = `Please choose a start date between ${formatNice(today)} and ${formatNice(maxStart)}.`;
       errorMsg.classList.add('show');
       return;
     }
@@ -508,9 +533,12 @@
     submitBtn.disabled = true;
     submitBtn.textContent = 'Saving...';
 
+    const startDateObj = new Date(stayDate.value + 'T00:00:00');
+    const endDateObj = addDays(startDateObj, 1);
     const entry = {
       name, room,
-      date: stayDate.value,
+      startDate: stayDate.value,
+      endDate: toDateStr(endDateObj),
       choice: selected.value,
       submittedAt: new Date().toISOString()
     };
@@ -524,12 +552,12 @@
 
       if(entry.choice === 'donate'){
         confirmTitle.textContent = 'Thank you for giving back.';
-        confirmBody.textContent = 'THB 200 will be donated to the We Love Hometown Foundation on your behalf. Housekeeping will skip your linen and towel change.';
+        confirmBody.textContent = 'THB 200 will be donated to the We Love Hometown Foundation on your behalf. Housekeeping will skip your linen and towel change on both days.';
       } else {
         confirmTitle.textContent = 'Thank you for your green choice.';
-        confirmBody.textContent = 'THB 200 will be credited for food at the restaurant during your stay. Housekeeping will skip your linen and towel change.';
+        confirmBody.textContent = 'THB 200 will be credited for food at the restaurant during your stay. Housekeeping will skip your linen and towel change on both days.';
       }
-      confirmCode.textContent = 'Room ' + room + ' \u00b7 ' + entry.date;
+      confirmCode.textContent = 'Room ' + room + ' \u00b7 ' + formatNice(startDateObj) + ' \u2013 ' + formatNice(endDateObj);
 
       formWrap.classList.add('hidden');
       confirmWrap.classList.add('show');
@@ -551,6 +579,7 @@
     const checked = document.querySelector('input[name="choice"]:checked');
     if(checked) checked.checked = false;
     stayDate.value = todayStr;
+    updateRangeHint();
     confirmWrap.classList.remove('show');
     formWrap.classList.remove('hidden');
   });
