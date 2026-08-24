@@ -563,7 +563,7 @@
       confirmWrap.classList.add('show');
     }catch(e){
       console.error(e);
-      errorMsg.textContent = 'Something went wrong saving your submission. Please try again or let reception know.';
+      errorMsg.textContent = 'Something went wrong saving your submission (' + (e && e.message ? e.message : 'unknown error') + '). Please try again or let reception know.';
       errorMsg.classList.add('show');
     }
 
