@@ -241,6 +241,102 @@
 </style>
 </head>
 <body>
+<!-- ===== Green Concept nav sidebar (self-contained, injected) ===== -->
+<style>
+  .gcnav-toggle{
+    position:fixed; top:50%; left:0; transform:translateY(-50%);
+    z-index:1000; background:var(--olive,#4F6228); color:#fff; border:none;
+    border-radius:0 10px 10px 0; width:34px; height:66px; padding:0;
+    display:flex; align-items:center; justify-content:center; cursor:pointer;
+    box-shadow:2px 2px 8px rgba(0,0,0,0.18);
+  }
+  .gcnav-toggle span, .gcnav-toggle span::before, .gcnav-toggle span::after{
+    display:block; width:16px; height:2px; background:#fff; border-radius:2px;
+  }
+  .gcnav-toggle span{ position:relative; }
+  .gcnav-toggle span::before, .gcnav-toggle span::after{ content:''; position:absolute; left:0; }
+  .gcnav-toggle span::before{ top:-5px; }
+  .gcnav-toggle span::after{ top:5px; }
+
+  .gcnav-backdrop{
+    position:fixed; inset:0; background:rgba(42,36,31,0.45);
+    opacity:0; visibility:hidden; transition:opacity .25s ease; z-index:1001;
+  }
+  .gcnav-backdrop.open{ opacity:1; visibility:visible; }
+
+  .gcnav-drawer{
+    position:fixed; top:0; left:0; height:100%; width:250px; max-width:80vw;
+    background:var(--shell,#FBF8F2); border-right:3px solid var(--olive,#4F6228);
+    transform:translateX(-100%); transition:transform .25s ease; z-index:1002;
+    display:flex; flex-direction:column; box-shadow:3px 0 16px rgba(0,0,0,0.15);
+  }
+  .gcnav-drawer.open{ transform:translateX(0); }
+  .gcnav-head{
+    background:var(--sand,#F1E9D8); padding:18px; border-bottom:3px solid var(--olive,#4F6228);
+  }
+  .gcnav-head h3{
+    margin:0; font-family:'Cormorant Garamond',serif; font-weight:700;
+    font-size:19px; color:var(--maroon,#6B2E22); line-height:1.1;
+  }
+  .gcnav-head p{
+    margin:3px 0 0; font-size:10.5px; letter-spacing:.05em;
+    font-family:'IBM Plex Mono',monospace; color:rgba(42,36,31,0.6);
+  }
+  .gcnav-links{ padding:12px; display:flex; flex-direction:column; gap:6px; }
+  .gcnav-links a{
+    display:flex; align-items:center; gap:11px; text-decoration:none;
+    color:var(--ink,#2A241F); font-family:'Work Sans',sans-serif; font-size:14.5px;
+    font-weight:500; padding:11px 13px; border-radius:9px; border:1.5px solid transparent;
+  }
+  .gcnav-links a:hover{ background:#fff; border-color:var(--line,rgba(107,46,34,0.16)); }
+  .gcnav-links a.active{
+    background:#fff; border-color:var(--olive,#4F6228);
+    color:var(--maroon,#6B2E22); font-weight:600;
+  }
+  .gcnav-links a .ic{ font-size:15px; width:20px; text-align:center; }
+  .gcnav-close{
+    margin:auto 12px 16px; background:none; cursor:pointer; font-size:12.5px;
+    color:var(--ink,#2A241F); font-family:'Work Sans',sans-serif;
+    border:1.5px solid var(--line,rgba(107,46,34,0.16)); border-radius:8px; padding:9px;
+  }
+  .gcnav-close:hover{ border-color:var(--maroon,#6B2E22); }
+</style>
+
+<button class="gcnav-toggle" id="gcnavToggle" aria-label="Open navigation menu"><span></span></button>
+<div class="gcnav-backdrop" id="gcnavBackdrop"></div>
+<nav class="gcnav-drawer" id="gcnavDrawer" aria-label="Staff navigation">
+  <div class="gcnav-head">
+    <h3>Green Concept</h3>
+    <p>Staff navigation</p>
+  </div>
+  <div class="gcnav-links">
+    <a href="dashboard.html" data-page="dashboard.html"><span class="ic">▤</span> Dashboard</a>
+    <a href="redeem.html" data-page="redeem.html"><span class="ic">▣</span> Redeem Voucher</a>
+  </div>
+  <button class="gcnav-close" id="gcnavClose">Close menu</button>
+</nav>
+
+<script>
+(function(){
+  var t=document.getElementById('gcnavToggle'),
+      d=document.getElementById('gcnavDrawer'),
+      b=document.getElementById('gcnavBackdrop'),
+      c=document.getElementById('gcnavClose');
+  function openNav(){ d.classList.add('open'); b.classList.add('open'); }
+  function closeNav(){ d.classList.remove('open'); b.classList.remove('open'); }
+  t.addEventListener('click', openNav);
+  b.addEventListener('click', closeNav);
+  c.addEventListener('click', closeNav);
+  document.addEventListener('keydown', function(e){ if(e.key==='Escape') closeNav(); });
+  var here=(location.pathname.split('/').pop()||'').toLowerCase();
+  var links=d.querySelectorAll('a[data-page]');
+  for(var i=0;i<links.length;i++){
+    if(links[i].getAttribute('data-page').toLowerCase()===here){ links[i].classList.add('active'); }
+  }
+})();
+</script>
+<!-- ===== end nav sidebar ===== -->
+
 
 <div class="page">
 
