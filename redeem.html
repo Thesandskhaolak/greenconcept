@@ -536,6 +536,15 @@
     document.getElementById('detChoice').textContent =
       record.choice === 'donate' ? 'Donate · We Love Hometown' : 'Credit · F&B';
 
+    if(record.choice === 'donate'){
+      statusPill.textContent = 'Donation \u2014 no redemption needed';
+      statusPill.className = 'status-pill status-valid';
+      redeemBtn.classList.add('hidden');
+      redeemedBanner.classList.add('hidden');
+      redeemedRow.classList.add('hidden');
+      return;
+    }
+
     if(record.redeemed_at){
       statusPill.textContent = 'Already redeemed';
       statusPill.className = 'status-pill status-used';
