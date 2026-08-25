@@ -309,9 +309,35 @@
         <span class="detail-label">Redeemed at</span>
         <span class="detail-value" id="detRedeemedAt"></span>
       </div>
+      <div class="detail-row hidden" id="redeemedOutletRow">
+        <span class="detail-label">Outlet</span>
+        <span class="detail-value" id="detRedeemedOutlet"></span>
+      </div>
+      <div class="detail-row hidden" id="redeemedByRow">
+        <span class="detail-label">Redeemed by</span>
+        <span class="detail-value" id="detRedeemedBy"></span>
+      </div>
     </div>
 
-    <button class="btn btn-primary" id="redeemBtn" style="margin-top:18px;">Mark as redeemed</button>
+    <div id="redeemFormBlock" style="margin-top:18px;">
+      <div class="field">
+        <label for="outletSelect">Outlet</label>
+        <select id="outletSelect" style="font-family:'Work Sans', sans-serif; font-size: 16px; padding: 12px 13px; border: 1.5px solid var(--line); border-radius: 8px; background: var(--shell); color: var(--ink); outline: none; width: 100%;">
+          <option value="">Select outlet...</option>
+          <option value="Floating Market Restaurant">Floating Market Restaurant</option>
+          <option value="Talay Restaurant">Talay Restaurant</option>
+          <option value="Manta Ray Bistro">Manta Ray Bistro</option>
+          <option value="Reception">Reception</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="staffNameInput">Staff name</label>
+        <input type="text" id="staffNameInput" placeholder="Your name" autocomplete="name">
+      </div>
+      <div class="error-box" id="redeemError"></div>
+    </div>
+
+    <button class="btn btn-primary" id="redeemBtn">Mark as redeemed</button>
 
     <div class="redeemed-banner hidden" id="redeemedBanner">
       <div class="redeemed-mark">&#10003;</div>
@@ -528,6 +554,9 @@
     const redeemBtn = document.getElementById('redeemBtn');
     const redeemedBanner = document.getElementById('redeemedBanner');
     const redeemedRow = document.getElementById('redeemedRow');
+    const redeemedOutletRow = document.getElementById('redeemedOutletRow');
+    const redeemedByRow = document.getElementById('redeemedByRow');
+    const redeemFormBlock = document.getElementById('redeemFormBlock');
 
     document.getElementById('detGuest').textContent = record.guest_name;
     document.getElementById('detRoom').textContent = record.room_number;
@@ -540,8 +569,11 @@
       statusPill.textContent = 'Donation \u2014 no redemption needed';
       statusPill.className = 'status-pill status-valid';
       redeemBtn.classList.add('hidden');
+      redeemFormBlock.classList.add('hidden');
       redeemedBanner.classList.add('hidden');
       redeemedRow.classList.add('hidden');
+      redeemedOutletRow.classList.add('hidden');
+      redeemedByRow.classList.add('hidden');
       return;
     }
 
@@ -549,20 +581,55 @@
       statusPill.textContent = 'Already redeemed';
       statusPill.className = 'status-pill status-used';
       redeemBtn.classList.add('hidden');
+      redeemFormBlock.classList.add('hidden');
       redeemedBanner.classList.add('hidden');
       redeemedRow.classList.remove('hidden');
       document.getElementById('detRedeemedAt').textContent = formatDateTime(record.redeemed_at);
+      if(record.redeemed_outlet){
+        redeemedOutletRow.classList.remove('hidden');
+        document.getElementById('detRedeemedOutlet').textContent = record.redeemed_outlet;
+      } else {
+        redeemedOutletRow.classList.add('hidden');
+      }
+      if(record.redeemed_by){
+        redeemedByRow.classList.remove('hidden');
+        document.getElementById('detRedeemedBy').textContent = record.redeemed_by;
+      } else {
+        redeemedByRow.classList.add('hidden');
+      }
     } else {
       statusPill.textContent = 'Valid · not yet redeemed';
       statusPill.className = 'status-pill status-valid';
       redeemBtn.classList.remove('hidden');
+      redeemFormBlock.classList.remove('hidden');
       redeemedBanner.classList.add('hidden');
       redeemedRow.classList.add('hidden');
+      redeemedOutletRow.classList.add('hidden');
+      redeemedByRow.classList.add('hidden');
+
+      // Pre-fill from last used on this device, for convenience - still editable
+      const lastOutlet = localStorage.getItem('gc_last_outlet');
+      const lastStaff = localStorage.getItem('gc_last_staff');
+      if(lastOutlet) document.getElementById('outletSelect').value = lastOutlet;
+      if(lastStaff) document.getElementById('staffNameInput').value = lastStaff;
+      document.getElementById('redeemError').classList.remove('show');
     }
   }
 
   document.getElementById('redeemBtn').addEventListener('click', async () => {
     if(!currentRecord) return;
+
+    const outlet = document.getElementById('outletSelect').value;
+    const staffName = document.getElementById('staffNameInput').value.trim();
+    const redeemError = document.getElementById('redeemError');
+    redeemError.classList.remove('show');
+
+    if(!outlet || !staffName){
+      redeemError.textContent = 'Please select the outlet and enter your name before redeeming.';
+      redeemError.classList.add('show');
+      return;
+    }
+
     const redeemBtn = document.getElementById('redeemBtn');
     redeemBtn.disabled = true;
     redeemBtn.textContent = 'Redeeming...';
@@ -584,7 +651,8 @@
         },
         body: JSON.stringify({
           redeemed_at: new Date().toISOString(),
-          redeemed_by: 'outlet_staff'
+          redeemed_by: staffName,
+          redeemed_outlet: outlet
         })
       });
       const updated = await res.json();
@@ -593,11 +661,14 @@
         await doLookup(currentRecord.redemption_code);
         return;
       }
+      localStorage.setItem('gc_last_outlet', outlet);
+      localStorage.setItem('gc_last_staff', staffName);
       currentRecord = updated[0];
       renderResult(currentRecord);
       document.getElementById('redeemedBanner').classList.remove('hidden');
     }catch(e){
-      alert('Something went wrong redeeming this voucher. Please try again.');
+      redeemError.textContent = 'Something went wrong redeeming this voucher. Please try again.';
+      redeemError.classList.add('show');
     }finally{
       redeemBtn.disabled = false;
       redeemBtn.textContent = 'Mark as redeemed';
