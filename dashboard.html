@@ -751,7 +751,7 @@
 
   function downloadCoupon(row){
     const { jsPDF } = window.jspdf;
-    const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: [140, 100] });
+    const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: [140, 108] });
 
     const maroon = [107, 46, 34];
     const olive = [79, 98, 40];
@@ -760,7 +760,7 @@
 
     doc.setDrawColor(...olive);
     doc.setLineWidth(1);
-    doc.rect(4, 4, 132, 92);
+    doc.rect(4, 4, 132, 100);
 
     doc.setTextColor(...maroon);
     doc.setFont('helvetica', 'bold');
