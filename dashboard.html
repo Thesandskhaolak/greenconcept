@@ -751,7 +751,7 @@
 
   function downloadCoupon(row){
     const { jsPDF } = window.jspdf;
-    const doc = new jsPDF({ unit: 'mm', format: [140, 100] });
+    const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: [140, 100] });
 
     const maroon = [107, 46, 34];
     const olive = [79, 98, 40];
