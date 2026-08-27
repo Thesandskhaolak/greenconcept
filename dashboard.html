@@ -6,6 +6,7 @@
 <title>Dashboard — Katathani Green Concept</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Work+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <style>
   :root{
     --maroon:     #6B2E22;
@@ -293,6 +294,18 @@
   .badge-redeemed{ background: rgba(63,107,46,0.12); color: var(--leaf); }
   .badge-pending{ background: rgba(232,144,30,0.14); color: #8a5711; }
   .badge-donation{ background: rgba(107,46,34,0.1); color: var(--maroon); }
+  .coupon-btn{
+    font-family:'Work Sans', sans-serif;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--maroon);
+    background: rgba(107,46,34,0.08);
+    border: 1px solid rgba(107,46,34,0.25);
+    border-radius: 6px;
+    padding: 5px 10px;
+    cursor: pointer;
+  }
+  .coupon-btn:hover{ background: rgba(107,46,34,0.15); }
   .empty-state{
     text-align:center;
     padding: 40px 20px;
@@ -520,6 +533,7 @@
             <th>Outlet</th>
             <th>Redeemed by</th>
             <th>Redeemed at</th>
+            <th>Coupon</th>
           </tr>
         </thead>
         <tbody id="tableBody"></tbody>
@@ -704,10 +718,13 @@
     return div.innerHTML;
   }
 
+  let currentRows = [];
+
   function renderTable(rows){
     const tableWrap = document.getElementById('tableWrap');
     const emptyState = document.getElementById('emptyState');
     const tbody = document.getElementById('tableBody');
+    currentRows = rows;
 
     if(!rows.length){
       tableWrap.classList.add('hidden');
@@ -727,9 +744,81 @@
         <td>${escapeHtml(r.redeemed_outlet) || '—'}</td>
         <td>${escapeHtml(r.redeemed_by) || '—'}</td>
         <td>${r.redeemed_at ? formatDateTime(r.redeemed_at) : '—'}</td>
+        <td>${(r.choice === 'credit' && r.redeemed_at) ? `<button class="coupon-btn" data-code="${escapeHtml(r.redemption_code)}">Download</button>` : '—'}</td>
       </tr>
     `).join('');
   }
+
+  function downloadCoupon(row){
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({ unit: 'mm', format: [140, 100] });
+
+    const maroon = [107, 46, 34];
+    const olive = [79, 98, 40];
+    const ink = [42, 36, 31];
+    const gray = [130, 122, 110];
+
+    doc.setDrawColor(...olive);
+    doc.setLineWidth(1);
+    doc.rect(4, 4, 132, 92);
+
+    doc.setTextColor(...maroon);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(14);
+    doc.text('Katathani Green Concept', 70, 14, { align: 'center' });
+
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(9);
+    doc.setTextColor(...gray);
+    doc.text('The Sands Khao Lak — Redemption Coupon', 70, 19.5, { align: 'center' });
+
+    doc.setDrawColor(...olive);
+    doc.setLineWidth(0.4);
+    doc.line(10, 23, 130, 23);
+
+    const rows = [
+      ['Guest', row.guest_name],
+      ['Room', row.room_number],
+      ['Participation dates', `${formatNice(row.participation_start_date)} - ${formatNice(row.participation_end_date)}`],
+      ['Choice', 'Credit - Food & Beverage (THB 200)'],
+      ['Redemption code', row.redemption_code],
+      ['Outlet', row.redeemed_outlet || '-'],
+      ['Redeemed by', row.redeemed_by || '-'],
+      ['Redeemed at', formatDateTime(row.redeemed_at)]
+    ];
+
+    let y = 31;
+    doc.setFontSize(10);
+    rows.forEach(([label, value]) => {
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(...gray);
+      doc.text(label, 10, y);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(...ink);
+      doc.text(String(value), 55, y);
+      y += 7.5;
+    });
+
+    doc.setDrawColor(...olive);
+    doc.setLineWidth(0.4);
+    doc.line(10, y + 1, 130, y + 1);
+
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(7.5);
+    doc.setTextColor(...gray);
+    doc.text('This coupon confirms redemption of a Green Concept Food & Beverage credit,', 70, y + 6, { align: 'center' });
+    doc.text('issued for accounting reconciliation purposes.', 70, y + 10, { align: 'center' });
+
+    doc.save(`GreenConcept_Room${row.room_number}_${row.redemption_code}.pdf`);
+  }
+
+  document.getElementById('tableBody').addEventListener('click', (e) => {
+    const btn = e.target.closest('.coupon-btn');
+    if(!btn) return;
+    const code = btn.dataset.code;
+    const row = currentRows.find(r => r.redemption_code === code);
+    if(row) downloadCoupon(row);
+  });
 
   let loadToken = 0;
 
