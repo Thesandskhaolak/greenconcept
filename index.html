@@ -384,6 +384,7 @@
       <div class="field">
         <label for="stayDate">Participation start date (2 days)</label>
         <input type="date" id="stayDate">
+        <span class="field-hint" id="dateNote">Not valid on arrival or departure day.</span>
         <span class="field-hint" id="rangeHint">No housekeeping service will be provided for your room on these two days.</span>
       </div>
     </div>
@@ -464,12 +465,14 @@
 
   const today = new Date();
   const todayStr = toDateStr(today);
-  // Guests may only pick a start date within a 4-day window: today, tomorrow, +2, or +3 days.
-  const maxStart = addDays(today, 3);
+  const minStart = addDays(today, 1);
+  const minStartStr = toDateStr(minStart);
+  // Guests may pick a start date from day 2 of their stay onward, up to 4 days ahead of today.
+  const maxStart = addDays(today, 4);
   const maxStartStr = toDateStr(maxStart);
 
-  stayDate.value = todayStr;
-  stayDate.min = todayStr;
+  stayDate.value = minStartStr;
+  stayDate.min = minStartStr;
   stayDate.max = maxStartStr;
 
   function updateRangeHint(){
@@ -529,8 +532,8 @@
       errorMsg.classList.add('show');
       return;
     }
-    if(stayDate.value < todayStr || stayDate.value > maxStartStr){
-      errorMsg.textContent = `Please choose a start date between ${formatNice(today)} and ${formatNice(maxStart)}.`;
+    if(stayDate.value < minStartStr || stayDate.value > maxStartStr){
+      errorMsg.textContent = `Please choose a start date between ${formatNice(minStart)} and ${formatNice(maxStart)}.`;
       errorMsg.classList.add('show');
       return;
     }
@@ -583,7 +586,7 @@
     choiceCards.forEach(c => c.classList.remove('selected'));
     const checked = document.querySelector('input[name="choice"]:checked');
     if(checked) checked.checked = false;
-    stayDate.value = todayStr;
+    stayDate.value = minStartStr;
     updateRangeHint();
     confirmWrap.classList.remove('show');
     formWrap.classList.remove('hidden');
