@@ -319,6 +319,56 @@
     color: rgba(42,36,31,0.5);
     padding: 30px 0;
   }
+
+  /* ---------- Row actions & admin controls ---------- */
+  .row-actions{
+    display:flex;
+    gap:6px;
+  }
+  .icon-btn{
+    font-family:'Work Sans', sans-serif;
+    font-size: 12px;
+    font-weight: 600;
+    border-radius: 6px;
+    padding: 5px 10px;
+    cursor: pointer;
+  }
+  .edit-btn{
+    color: var(--olive);
+    background: rgba(79,98,40,0.08);
+    border: 1px solid rgba(79,98,40,0.28);
+  }
+  .edit-btn:hover{ background: rgba(79,98,40,0.16); }
+  .delete-btn{
+    color: var(--danger);
+    background: rgba(164,64,46,0.08);
+    border: 1px solid rgba(164,64,46,0.28);
+  }
+  .delete-btn:hover{ background: rgba(164,64,46,0.16); }
+
+  /* ---------- Edit modal ---------- */
+  .modal-overlay{
+    position: fixed;
+    inset: 0;
+    background: rgba(42,36,31,0.55);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding: 20px;
+    z-index: 2000;
+  }
+  .modal-overlay.hidden{ display:none !important; }
+  .modal-box{
+    width: 100%;
+    max-width: 460px;
+    max-height: 90vh;
+    overflow-y: auto;
+  }
+  .modal-box .field-row{
+    display:grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
 </style>
 </head>
 <body>
@@ -534,6 +584,7 @@
             <th>Redeemed by</th>
             <th>Redeemed at</th>
             <th>Coupon</th>
+            <th id="actionsHeader" class="hidden">Actions</th>
           </tr>
         </thead>
         <tbody id="tableBody"></tbody>
@@ -545,11 +596,90 @@
 
 </div>
 
+<!-- ADMIN EDIT MODAL -->
+<div class="modal-overlay hidden" id="editModalOverlay">
+  <div class="modal-box card">
+    <h2>Edit submission</h2>
+    <div class="error-box" id="editError"></div>
+
+    <div class="field-row">
+      <div class="field">
+        <label for="editGuestName">Guest name</label>
+        <input type="text" id="editGuestName">
+      </div>
+      <div class="field">
+        <label for="editRoomNumber">Room</label>
+        <input type="text" id="editRoomNumber">
+      </div>
+    </div>
+
+    <div class="field-row">
+      <div class="field">
+        <label for="editStartDate">Participation from</label>
+        <input type="date" id="editStartDate">
+      </div>
+      <div class="field">
+        <label for="editEndDate">Participation to</label>
+        <input type="date" id="editEndDate">
+      </div>
+    </div>
+
+    <div class="field">
+      <label for="editChoice">Choice</label>
+      <select id="editChoice">
+        <option value="donate">Donate</option>
+        <option value="credit">Credit</option>
+      </select>
+    </div>
+
+    <div class="field-row">
+      <div class="field">
+        <label for="editOutlet">Redeemed outlet</label>
+        <select id="editOutlet">
+          <option value="">— None —</option>
+          <option value="Floating Market Restaurant">Floating Market Restaurant</option>
+          <option value="Talay Restaurant">Talay Restaurant</option>
+          <option value="Manta Ray Bistro">Manta Ray Bistro</option>
+          <option value="Reception">Reception</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="editRedeemedBy">Redeemed by</label>
+        <input type="text" id="editRedeemedBy">
+      </div>
+    </div>
+
+    <div class="field">
+      <label for="editRedeemedAt">Redeemed at</label>
+      <input type="datetime-local" id="editRedeemedAt">
+    </div>
+
+    <div class="modal-actions" style="display:flex; gap:10px; justify-content:flex-end; margin-top:6px;">
+      <button class="btn btn-secondary" id="editCancelBtn">Cancel</button>
+      <button class="btn btn-primary" id="editSaveBtn">Save changes</button>
+    </div>
+  </div>
+</div>
+
 <script>
 (function(){
   const SUPABASE_URL = 'https://ujnuyragcwqxbxxbkorl.supabase.co';
   const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVqbnV5cmFnY3dxeGJ4eGJrb3JsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODc0Njk2OTUsImV4cCI6MjEwMzA0NTY5NX0.Icjs2-Bjs8z_wBU-iy_k_XET7WrBQkpY6E_PP1oPwoI';
   const SESSION_KEY = 'gc_staff_session';
+  const ADMIN_UUID = '2859dbea-d415-4974-ad3c-17f740f9c201';
+  let isAdmin = false;
+
+  function decodeJwtSub(token){
+    try{
+      const payload = token.split('.')[1];
+      const base64 = payload.replace(/-/g, '+').replace(/_/g, '/');
+      const padded = base64 + '='.repeat((4 - base64.length % 4) % 4);
+      const json = decodeURIComponent(atob(padded).split('').map(c =>
+        '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2)
+      ).join(''));
+      return JSON.parse(json).sub;
+    }catch(e){ return null; }
+  }
 
   const loginCard = document.getElementById('loginCard');
   const dashboardContent = document.getElementById('dashboardContent');
@@ -592,6 +722,7 @@
       session = await refreshSession(session);
       if(!session){ clearSession(); return null; }
     }
+    isAdmin = decodeJwtSub(session.access_token) === ADMIN_UUID;
     return session.access_token;
   }
 
@@ -734,6 +865,9 @@
     tableWrap.classList.remove('hidden');
     emptyState.classList.add('hidden');
 
+    const actionsHeader = document.getElementById('actionsHeader');
+    if(isAdmin) actionsHeader.classList.remove('hidden'); else actionsHeader.classList.add('hidden');
+
     tbody.innerHTML = rows.map(r => `
       <tr>
         <td>${escapeHtml(r.guest_name)}</td>
@@ -745,6 +879,12 @@
         <td>${escapeHtml(r.redeemed_by) || '—'}</td>
         <td>${r.redeemed_at ? formatDateTime(r.redeemed_at) : '—'}</td>
         <td>${(r.choice === 'credit' && r.redeemed_at) ? `<button class="coupon-btn" data-code="${escapeHtml(r.redemption_code)}">Download</button>` : '—'}</td>
+        ${isAdmin ? `<td>
+          <div class="row-actions">
+            <button class="icon-btn edit-btn" data-id="${r.id}">Edit</button>
+            <button class="icon-btn delete-btn" data-id="${r.id}">Delete</button>
+          </div>
+        </td>` : ''}
       </tr>
     `).join('');
   }
@@ -813,12 +953,138 @@
   }
 
   document.getElementById('tableBody').addEventListener('click', (e) => {
-    const btn = e.target.closest('.coupon-btn');
-    if(!btn) return;
-    const code = btn.dataset.code;
-    const row = currentRows.find(r => r.redemption_code === code);
-    if(row) downloadCoupon(row);
+    const couponBtn = e.target.closest('.coupon-btn');
+    if(couponBtn){
+      const code = couponBtn.dataset.code;
+      const row = currentRows.find(r => r.redemption_code === code);
+      if(row) downloadCoupon(row);
+      return;
+    }
+    const editBtn = e.target.closest('.edit-btn');
+    if(editBtn){
+      const row = currentRows.find(r => r.id === editBtn.dataset.id);
+      if(row) openEditModal(row);
+      return;
+    }
+    const deleteBtn = e.target.closest('.delete-btn');
+    if(deleteBtn){
+      const row = currentRows.find(r => r.id === deleteBtn.dataset.id);
+      if(row) confirmDeleteSubmission(row);
+      return;
+    }
   });
+
+  async function callRpc(name, body){
+    const accessToken = await getValidAccessToken();
+    if(!accessToken){
+      showLoggedOutUI();
+      throw new Error('Not logged in.');
+    }
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/rpc/${name}`, {
+      method: 'POST',
+      headers: {
+        apikey: SUPABASE_ANON_KEY,
+        Authorization: `Bearer ${accessToken}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(body)
+    });
+    const text = await res.text();
+    let data = null;
+    try{ data = text ? JSON.parse(text) : null; }catch(e){ /* not JSON */ }
+    if(!res.ok){
+      const message = (data && (data.message || data.error_description)) || text || 'Request failed.';
+      throw new Error(message);
+    }
+    return data;
+  }
+
+  function isoToDatetimeLocal(iso){
+    if(!iso) return '';
+    const d = new Date(iso);
+    const pad = n => String(n).padStart(2, '0');
+    return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  }
+  function datetimeLocalToIso(value){
+    if(!value) return null;
+    return new Date(value).toISOString();
+  }
+
+  let editingId = null;
+  const editModalOverlay = document.getElementById('editModalOverlay');
+  const editError = document.getElementById('editError');
+
+  function openEditModal(row){
+    editingId = row.id;
+    editError.classList.remove('show');
+    document.getElementById('editGuestName').value = row.guest_name || '';
+    document.getElementById('editRoomNumber').value = row.room_number || '';
+    document.getElementById('editStartDate').value = row.participation_start_date || '';
+    document.getElementById('editEndDate').value = row.participation_end_date || '';
+    document.getElementById('editChoice').value = row.choice || 'credit';
+    document.getElementById('editOutlet').value = row.redeemed_outlet || '';
+    document.getElementById('editRedeemedBy').value = row.redeemed_by || '';
+    document.getElementById('editRedeemedAt').value = isoToDatetimeLocal(row.redeemed_at);
+    editModalOverlay.classList.remove('hidden');
+  }
+  function closeEditModal(){
+    editingId = null;
+    editModalOverlay.classList.add('hidden');
+  }
+
+  document.getElementById('editCancelBtn').addEventListener('click', closeEditModal);
+  editModalOverlay.addEventListener('click', (e) => {
+    if(e.target === editModalOverlay) closeEditModal();
+  });
+
+  document.getElementById('editSaveBtn').addEventListener('click', async () => {
+    if(!editingId) return;
+    const saveBtn = document.getElementById('editSaveBtn');
+    editError.classList.remove('show');
+
+    const payload = {
+      p_id: editingId,
+      p_guest_name: document.getElementById('editGuestName').value.trim(),
+      p_room_number: document.getElementById('editRoomNumber').value.trim(),
+      p_start_date: document.getElementById('editStartDate').value,
+      p_end_date: document.getElementById('editEndDate').value,
+      p_choice: document.getElementById('editChoice').value,
+      p_outlet: document.getElementById('editOutlet').value || null,
+      p_redeemed_by: document.getElementById('editRedeemedBy').value.trim() || null,
+      p_redeemed_at: datetimeLocalToIso(document.getElementById('editRedeemedAt').value)
+    };
+
+    if(!payload.p_guest_name || !payload.p_room_number || !payload.p_start_date || !payload.p_end_date){
+      editError.textContent = 'Please fill in guest name, room, and both dates.';
+      editError.classList.add('show');
+      return;
+    }
+
+    saveBtn.disabled = true;
+    saveBtn.textContent = 'Saving...';
+    try{
+      await callRpc('admin_update_submission', payload);
+      closeEditModal();
+      loadData();
+    }catch(e){
+      editError.textContent = e.message || 'Could not save changes. Please try again.';
+      editError.classList.add('show');
+    }finally{
+      saveBtn.disabled = false;
+      saveBtn.textContent = 'Save changes';
+    }
+  });
+
+  async function confirmDeleteSubmission(row){
+    const ok = window.confirm(`Delete the submission for ${row.guest_name} (Room ${row.room_number})? This cannot be undone.`);
+    if(!ok) return;
+    try{
+      await callRpc('admin_delete_submission', { p_id: row.id });
+      loadData();
+    }catch(e){
+      window.alert(e.message || 'Could not delete this submission. Please try again.');
+    }
+  }
 
   let loadToken = 0;
 
